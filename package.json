@@ -16,6 +16,8 @@
     "express-rate-limit": "^7.1.2",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "pino": "^8.16.1",
+    "pino-http": "^8.5.0",
     "sqlite3": "^5.1.6"
   }
 }

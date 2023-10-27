@@ -3,14 +3,24 @@ const http = require("http");
 const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const { initializeAPI } = require("./api");
+const pino = require('pino');
+const pinoHttp = require('pino-http');
 
 const app = express();
 app.use(express.json());
+
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+const expressLogger = pinoHttp({ logger });
+
+app.use(expressLogger);
 
 const limiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 100, 
   message: "Zu viele Anfragen von dieser IP-Adresse. Versuchen Sie es später erneut.",
+  onLimitReached: (req, res, options) => {
+    logger.warn(`Rate limit erreicht: ${req.ip}`);
+  }
 });
 
 app.use(limiter);
@@ -30,11 +40,11 @@ app.get("/", (req, res) => {
 });
 
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  logger.error(err.stack);
   res.status(500).send("Internal Server Error");
 });
 
 const serverPort = process.env.PORT || 3000;
 server.listen(serverPort, () => {
-  console.log(`Express Server started on port ${serverPort}`);
+  logger.info(`Express Server gestartet auf Port ${serverPort}`);
 });

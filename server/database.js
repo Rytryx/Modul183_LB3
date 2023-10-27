@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
+const logger = require('pino')();
 
 const tweetsTableExists =
   "SELECT name FROM sqlite_master WHERE type='table' AND name='tweets'";
@@ -23,33 +24,48 @@ const seedUsersTable = `INSERT INTO users (username, password) VALUES
 `;
 
 const initializeDatabase = async () => {
-  const db = new sqlite3.Database("./minitwitter.db");
+  logger.info('Initialisiere Datenbank...');
+  const db = new sqlite3.Database("./minitwitter.db", (err) => {
+    if (err) {
+      logger.error('Fehler beim Verbinden zur Datenbank:', err.message);
+    } else {
+      logger.info('Verbunden zur SQLite-Datenbank.');
+    }
+  });
 
   db.serialize(() => {
     db.get(tweetsTableExists, [], async (err, row) => {
       if (err) {
-        console.error(err.message);
+        logger.error('Fehler beim Überprüfen der tweets Tabelle:', err.message);
         return;
       }
       if (!row) {
         await db.run(createTweetsTable, (err) => {
-          if (err) console.error(err.message);
+          if (err) {
+            logger.error('Fehler beim Erstellen der tweets Tabelle:', err.message);
+          } else {
+            logger.info('tweets Tabelle erfolgreich erstellt.');
+          }
         });
       }
     });
     db.get(usersTableExists, [], async (err, row) => {
       if (err) {
-        console.error(err.message);
+        logger.error('Fehler beim Überprüfen der users Tabelle:', err.message);
         return;
       }
       if (!row) {
         db.run(createUsersTable, [], async (err) => {
           if (err) {
-            console.error(err.message);
+            logger.error('Fehler beim Erstellen der users Tabelle:', err.message);
             return;
           }
           db.run(seedUsersTable, (err) => {
-            if (err) console.error(err.message);
+            if (err) {
+              logger.error('Fehler beim Befüllen der users Tabelle:', err.message);
+            } else {
+              logger.info('users Tabelle erfolgreich befüllt.');
+            }
           });
         });
       }
@@ -62,7 +78,11 @@ const initializeDatabase = async () => {
 const insertDB = (db, query) => {
   return new Promise((resolve, reject) => {
     db.run(query, [], (err, rows) => {
-      if (err) return reject(err);
+      if (err) {
+        logger.error('Fehler beim Einfügen in die Datenbank:', err.message);
+        return reject(err);
+      }
+      logger.info('Eintrag erfolgreich in die Datenbank eingefügt.');
       resolve(rows);
     });
   });
@@ -71,7 +91,11 @@ const insertDB = (db, query) => {
 const queryDB = (db, query, params) => {
   return new Promise((resolve, reject) => {
     db.all(query, [params], (err, rows) => {
-      if (err) return reject(err);
+      if (err) {
+        logger.error('Fehler bei der Datenbankabfrage:', err.message);
+        return reject(err);
+      }
+      logger.info('Datenbankabfrage erfolgreich durchgeführt.');
       resolve(rows);
     });
   });
@@ -80,7 +104,11 @@ const queryDB = (db, query, params) => {
 const queryDBWithParams = (db, query, params) => {
   return new Promise((resolve, reject) => {
     db.all(query, params, (err, rows) => {
-      if (err) return reject(err);
+      if (err) {
+        logger.error('Fehler bei der Datenbankabfrage mit Parametern:', err.message);
+        return reject(err);
+      }
+      logger.info('Datenbankabfrage mit Parametern erfolgreich durchgeführt.');
       resolve(rows);
     });
   });
